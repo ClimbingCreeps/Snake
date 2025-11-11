@@ -78,12 +78,16 @@ while running:
             
             else: # no wall bonk means move to the next cell
                 
+                # always insert new head (this is how we move)
+                snake.insert(0, new_head) # insert new head at beginning of list
+                                          # move the front of the snake to next cell
+                
                 # check if we've hit food!
                 if new_head[0] == food[0] and new_head[1] == food[1]:
                     food = spawn_food(snake)
-                    
-                snake.insert(0, new_head) # insert new head at beginning of list
-                snake.pop() # remove last body segment to keep length the same
+        
+                else: # only remove the tail if we haven't eaten food
+                    snake.pop() # remove last body segment to keep length the same
     
     # Render section =================================================
     screen.fill((0,0,0))
