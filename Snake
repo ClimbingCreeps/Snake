@@ -1,21 +1,43 @@
 import pygame
+import random
 pygame.init()
 screen = pygame.display.set_mode((600, 440))
 pygame.display.set_caption("Snake")
 clock = pygame.time.Clock()
 
+dx = 0 # speed going left / right
+dy = 0 # speed going up / down
+ticker = 0
+alive = True
+
 def draw_grid():
     # draw vertical lines
-    x = 0
-    while x < 600:
-        pygame.draw.line(screen, (40,40,40,), (x, 0), (x, 440))
-        x = x + 10
-        
-    # draw horizontal lines
     y = 0
-    while y < 440:
+    x = 0
+    for i in range(30):
+        pygame.draw.line(screen, (40,40,40), (x, 0), (x, 440))
+        x += 20
         pygame.draw.line(screen, (40,40,40), (0, y), (600, y))
-        y = y + 10
+        y += 20
+
+def draw_snake_head(x_cell, y_cell):
+    pygame.draw.rect(screen, (0, 200, 0), (x_cell * 20, y_cell * 20, 20, 20))
+
+def spawn_food(snake_list):
+    # keep trying random cells until we find one not on the snake
+    while True:
+        fx = random.randint(0, 29)  # 30 columns:0..29
+        fy = random.randint(0, 21)  # 22 rows:   0..21
+        if [fx, fy] not in snake_list:
+            return [fx, fy] # return statements exit the function
+    
+snake = [
+    [10, 8], # head
+    [9, 8], # body segment 1
+    [8, 8] # body segment 2
+]
+
+food = spawn_food(snake) # call the food gen function
 
 running = True
 while running:
@@ -24,13 +46,63 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        # Keyboard Input
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RIGHT:
+                dx = 1
+                dy = 0
+            elif event.key == pygame.K_LEFT:
+                dx = -1
+                dy = 0
+            elif event.key == pygame.K_UP:
+                dx = 0
+                dy = -1
+            elif event.key == pygame.K_DOWN:
+                dx = 0
+                dy = 1
             
     # Physics section ================================================
+    ticker += 1
+    if alive:
+        if ticker %6 == 0:
+            ticker = 0
+            head_x = snake[0][0]
+            head_y = snake[0][1]
+            
+            # set the new head to be the cell in front of us
+            new_head = [head_x + dx, head_y + dy]
+            
+            # check if you've bonked a wall!
+            if new_head[0] < 0 or new_head[0] > 29 or new_head[1] < 0 or new_head[1] > 21:
+                alive = False
+            
+            else: # no wall bonk means move to the next cell
+                
+                # check if we've hit food!
+                if new_head[0] == food[0] and new_head[1] == food[1]:
+                    food = spawn_food(snake)
+                    
+                snake.insert(0, new_head) # insert new head at beginning of list
+                snake.pop() # remove last body segment to keep length the same
     
-    # render section =================================================
+    # Render section =================================================
     screen.fill((0,0,0))
     
     draw_grid()
+    
+    i = 0
+    while i < len(snake):
+        part = snake[i]
+        draw_snake_head(part[0], part[1])
+        i += 1
+    
+    if not alive:
+        # display a simple "Game Over"
+        font = pygame.font.SysFont(None, 48)
+        text = font.render("Game Over.", True, (255, 255, 255))
+        screen.blit(text, (217, 200))
+        
+    pygame.draw.rect(screen, (220, 40, 40), (food[0]*20, food[1]*20, 20, 20)) # draw the food
     
     pygame.display.flip()
     
