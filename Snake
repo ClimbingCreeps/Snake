@@ -4,16 +4,39 @@ pygame.init()
 screen = pygame.display.set_mode((600, 440))
 pygame.display.set_caption("Snake")
 clock = pygame.time.Clock()
+pygame.mixer.init()
 
-dx = 0 # speed going left / right
+dx = 1 # speed going left / right
 dy = 0 # speed going up / down
 ticker = 0
+score = 0
 alive = True
+
+try:
+    bite = pygame.mixer.Sound("Big_bite_(Gravity_Sound).wav")
+    bite.set_volume(0.4)
+except:
+    bite = None
+    print("sound didn't load!")
+try:
+    pygame.mixer.music.load("lofi-girl-lofi-ambient-music-365952.mp3") # or .mp3 / .ogg
+    pygame.mixer.music.set_volume(0.3)                                 # 0.0 = silent< 1.0 = loud
+    pygame.mixer.music.play(-1)                                        # -1 means loop forever
+except:
+    BackGroundMusic = None
+    print("sound didn't load!")
+try:
+    Bump = pygame.mixer.Sound("bump-7-92964.mp3")
+    Bump.set_volume(0.4)
+except:
+    Bump = None
+    print("sound didn't load!")
 
 def draw_grid():
     # draw vertical lines
     y = 0
     x = 0
+    
     for i in range(30):
         pygame.draw.line(screen, (40,40,40), (x, 0), (x, 440))
         x += 20
@@ -37,6 +60,15 @@ snake = [
     [8, 8] # body segment 2
 ]
 
+title = pygame.transform.scale(pygame.image.load("snake-game-loading-screen.jpg"), (800, 440))
+start_time = pygame.time.get_ticks()
+while True:
+    clock.tick(60)
+    if pygame.time.get_ticks() - start_time > 4000: # 4 seconds
+        break
+    screen.blit(title, (-100,0))
+    pygame.display.flip()
+
 food = spawn_food(snake) # call the food gen function
 
 running = True
@@ -46,20 +78,20 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        # Keyboard Input
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_RIGHT:
-                dx = 1
-                dy = 0
-            elif event.key == pygame.K_LEFT:
-                dx = -1
-                dy = 0
-            elif event.key == pygame.K_UP:
-                dx = 0
-                dy = -1
-            elif event.key == pygame.K_DOWN:
-                dx = 0
-                dy = 1
+    # Keyboard Input
+    if event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_RIGHT:
+            dx = 1
+            dy = 0
+        elif event.key == pygame.K_LEFT:
+            dx = -1
+            dy = 0
+        elif event.key == pygame.K_UP:
+            dx = 0
+            dy = -1
+        elif event.key == pygame.K_DOWN:
+            dx = 0
+            dy = 1
             
     # Physics section ================================================
     ticker += 1
@@ -73,18 +105,22 @@ while running:
             new_head = [head_x + dx, head_y + dy]
             
             # check if you've bonked a wall!
-            if new_head[0] < 0 or new_head[0] > 29 or new_head[1] < 0 or new_head[1] > 21:
+            if new_head[0] < 0 or new_head[0] > 29 or new_head[1] < 0 or new_head[1] > 21 or new_head in snake:
                 alive = False
+                if Bump:
+                    Bump.play()
             
             else: # no wall bonk means move to the next cell
                 
                 # always insert new head (this is how we move)
-                snake.insert(0, new_head) # insert new head at beginning of list
-                                          # move the front of the snake to next cell
+                snake.insert(0, new_head) # insert new head at beginning of list | move the front of the snake to next cell
                 
                 # check if we've hit food!
                 if new_head[0] == food[0] and new_head[1] == food[1]:
                     food = spawn_food(snake)
+                    if bite:
+                        bite.play()
+                    score += 1
         
                 else: # only remove the tail if we haven't eaten food
                     snake.pop() # remove last body segment to keep length the same
@@ -105,6 +141,10 @@ while running:
         font = pygame.font.SysFont(None, 48)
         text = font.render("Game Over.", True, (255, 255, 255))
         screen.blit(text, (217, 200))
+        
+    font = pygame.font.SysFont(None, 48)
+    text = font.render("Score: " + str(score), True, (255, 255, 255))
+    screen.blit(text, (8, 8))
         
     pygame.draw.rect(screen, (220, 40, 40), (food[0]*20, food[1]*20, 20, 20)) # draw the food
     
